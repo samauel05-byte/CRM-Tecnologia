@@ -17,7 +17,7 @@ El Gantt muestra las fechas guardadas; no recalcula automáticamente las depende
 
 ## Desarrollo
 
-Requiere Node.js 22.13 o posterior.
+Requiere Node.js 24.
 
 ```sh
 npm ci

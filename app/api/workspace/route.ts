@@ -1,3 +1,4 @@
+import { isSameOrigin } from '@/lib/http';
 import { createSupabaseServer } from '@/lib/supabase/server';
 export const dynamic='force-dynamic';
 const respond=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'private, no-store'}});
@@ -9,7 +10,7 @@ export async function GET(){
   return respond({data:row?.payload||null,revision:row?.revision||0,user:{name:user.user_metadata?.full_name||user.email,email:user.email}});
 }
 export async function PUT(request:Request){
-  if(request.headers.get('origin')!==new URL(request.url).origin)return respond({error:'Origen inválido.'},403);
+  if(!isSameOrigin(request))return respond({error:'Origen inválido.'},403);
   const supabase=await createSupabaseServer();const {data:{user}}=await supabase.auth.getUser();if(!user)return respond({error:'Inicia sesión para guardar.'},401);
   const raw=await request.text();if(raw.length>1500000)return respond({error:'El espacio supera el tamaño permitido.'},413);
   let body;try{body=JSON.parse(raw)}catch{return respond({error:'Datos inválidos.'},400)}

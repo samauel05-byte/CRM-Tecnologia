@@ -60,6 +60,9 @@
     "lib/connector-errors.mts",
     "lib/connector-preview.d.ts",
     "lib/connectors.ts",
-    "components/connector-error.tsx"
+    "components/connector-error.tsx",
+    "components",
+    "hooks",
+    "lib/utils.ts"
   ]
 }

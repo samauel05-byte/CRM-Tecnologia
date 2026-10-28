@@ -1,8 +1,9 @@
+import { isSameOrigin } from '@/lib/http';
 import { createSupabaseServer } from '@/lib/supabase/server';
 export const dynamic='force-dynamic';
 const bucket='crm-attachments';
 export async function POST(request:Request){
-  if(request.headers.get('origin')!==new URL(request.url).origin)return Response.json({error:'Origen inválido.'},{status:403});
+  if(!isSameOrigin(request))return Response.json({error:'Origen inválido.'},{status:403});
   const supabase=await createSupabaseServer(),{data:{user}}=await supabase.auth.getUser();if(!user)return Response.json({error:'Inicia sesión.'},{status:401});
   let body;try{body=await request.json()}catch{return Response.json({error:'Solicitud inválida.'},{status:400})}
   if(typeof body.name!=='string'||!body.name.trim()||body.name.length>200||!Number.isInteger(body.size)||body.size<0||body.size>10000000)return Response.json({error:'Archivo inválido o mayor a 10 MB.'},{status:400});
