@@ -1,41 +1,54 @@
-# Dupla · Proyectos y tareas
+# Dupla · CRM Tecnología
 
-Aplicación de gestión de proyectos inspirada en los flujos de ClickUp, en español.
-
-[Aplicación privada publicada](https://dupla-tareas-samuel-281026.sam-x05.chatgpt.site)
+Gestión de proyectos y tareas en español, con Next.js en Vercel y Supabase para autenticación, base de datos y archivos.
 
 ## Funciones
 
-- Proyectos y tareas con responsable, prioridad, etiquetas y fechas.
-- Vistas de lista, tablero con arrastre, calendario, tabla editable y cronograma Gantt.
-- Estados personalizados, tareas principales, subtareas y listas de control.
-- Comentarios, historial, dependencias y registro de tiempo.
-- Adjuntos de hasta 10 MB, papelera y restauración.
-- Búsqueda, filtros, ordenación, exportación CSV y respaldo JSON.
-- Persistencia en Cloudflare D1 y archivos en R2.
-- Acceso privado con ChatGPT y control de revisión para evitar sobrescrituras simultáneas.
+- Proyectos, tareas, subtareas y listas de control.
+- Lista, tablero con arrastre, calendario, tabla editable y Gantt.
+- Estados personalizados, responsables, fechas, prioridades y etiquetas.
+- Comentarios, dependencias, historial y registro de tiempo.
+- Adjuntos privados de hasta 10 MB con subida directa a Supabase Storage.
+- Papelera, restauración, filtros, exportación CSV y respaldo JSON.
+- Sesiones verificadas en el servidor y acceso a los datos limitado por usuario mediante RLS.
+- Control de revisión para evitar sobrescrituras entre pestañas o dispositivos.
 
-Los datos pertenecen al usuario autenticado. Esta versión no implementa colaboración entre usuarios, automatizaciones, IA ni integraciones externas. Las tareas iniciales son ejemplos. El Gantt muestra las fechas registradas y las dependencias son referencias; no recalcula automáticamente la planificación.
+El Gantt muestra las fechas guardadas; no recalcula automáticamente las dependencias. Esta versión no incluye espacios compartidos entre usuarios, automatizaciones ni IA. Las tareas iniciales son ejemplos.
 
-## Tecnología
+## Desarrollo
 
-Vinext, React, TypeScript, Cloudflare Workers, D1, R2 y Drizzle. La interfaz se encuentra en `public/workspace.html`, `public/app.js` y `public/extended.js`. Los servicios de datos y archivos están en `app/api/`.
-
-## Desarrollo local
-
-Requiere Node.js 22.13 o posterior y npm.
+Requiere Node.js 22.13 o posterior.
 
 ```sh
 npm ci
-npm run db:generate
-npm run build
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_nasty_vin_gonzales.sql
+```
+
+Copia `.env.example` a `.env.local` y configura:
+
+```text
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+```
+
+No se necesita ni debe utilizarse una clave `service_role` en el navegador. Las sesiones utilizan la clave publicable y las políticas de seguridad del usuario autenticado.
+
+```sh
 npm run dev
 ```
 
-La migración inicial ya está incluida; aplícala una sola vez por base de datos local. Para cambios posteriores, genera y aplica únicamente las nuevas migraciones. El servidor muestra su dirección al iniciar.
+## Supabase
 
-En desarrollo local, abre `/signin-with-chatgpt?return_to=/` desde el mismo sitio para usar la identidad de prueba del entorno. Esta simulación no forma parte de la autenticación de producción.
+El proyecto conectado es `pos-multicaja` (`uvaotfqutfojokbnzgcs`). La aplicación utiliza únicamente sus tablas `crm_workspaces` y `crm_attachments` y el bucket privado `crm-attachments`. La migración correspondiente se conserva en `supabase/migrations/`.
+
+Cada cuenta ve su propio espacio; iniciar sesión con otro correo no comparte automáticamente los datos. Para acceder por primera vez, crea una cuenta en la pantalla de entrada y confirma el correo si el proyecto lo solicita. Las credenciales de ChatGPT usadas por la versión anterior en Sites no se transfieren a Supabase.
+
+Los adjuntos se suben mediante enlaces de carga firmados y se descargan mediante enlaces privados de corta duración. El límite del bucket es 10 MB por archivo.
+
+## Vercel
+
+El repositorio se publica como un proyecto Next.js. Configura las dos variables anteriores en Production y Development antes de ejecutar la aplicación. No se concede a los despliegues de Preview acceso a la base de datos de producción por defecto.
+
+Los commits de `main` activan la integración de Git de Vercel. `vercel.json` especifica el framework, los comandos y la región de las funciones.
 
 ## Comprobaciones
 
@@ -46,10 +59,6 @@ node --check public/extended.js
 npm run build
 ```
 
-Se verificaron creación y persistencia de tareas, fechas y etiquetas, estados personalizados, subtareas, vistas, adjuntos, rechazo de acceso anónimo y control de cambios simultáneos.
+La interfaz se encuentra en `public/workspace.html`, `public/app.js` y `public/extended.js`. Los servicios están en `app/api/`, la entrada en `app/login/` y la renovación de sesión en `proxy.ts`.
 
-## Publicación
-
-La aplicación está configurada para Sites. `.openai/hosting.json` conserva el identificador del sitio y los bindings `DB` y `BUCKET`. Los cambios en GitHub no se publican automáticamente en el sitio: el flujo de publicación debe empaquetar y desplegar la versión correspondiente.
-
-Las credenciales, datos locales, dependencias y archivos generados no se incluyen en este repositorio. Los componentes y herramientas de terceros conservan sus licencias en el código y en `scripts/vite/`.
+No se incluyen contraseñas, claves privadas, datos de usuarios, archivos de prueba ni dependencias instaladas. Los componentes de terceros conservan sus licencias en el código y en `vendor/`.

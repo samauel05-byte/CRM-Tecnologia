@@ -43,3 +43,9 @@ yarn-error.log*
 
 # OS metadata
 .DS_Store
+
+/.vercel/
+!/.env.example
+
+/supabase/.temp/
+/supabase/.branches/
