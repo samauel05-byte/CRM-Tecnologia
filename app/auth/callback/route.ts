@@ -1,5 +1,6 @@
 import { createSupabaseServer } from '@/lib/supabase/server';
 export async function GET(request:Request){
+  if(process.env.CRM_STORAGE==='local')return new Response(null,{status:303,headers:{Location:'/login','Cache-Control':'no-store'}});
   const url=new URL(request.url),code=url.searchParams.get('code'),tokenHash=url.searchParams.get('token_hash');
   const headers={'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer'};
   const supabase=await createSupabaseServer();

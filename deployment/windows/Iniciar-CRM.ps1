@@ -1,6 +1,11 @@
 $ErrorActionPreference='Stop'
 $root=$PSScriptRoot
 $config=Get-Content -LiteralPath (Join-Path $root 'configuracion.json') -Raw | ConvertFrom-Json
+if($config.storage -eq 'local'){
+ $env:CRM_STORAGE='local'
+ $env:CRM_DATA_DIR=$config.dataDirectory
+ $env:CRM_PRIVATE_CONFIG=Join-Path $config.dataDirectory 'privado.json'
+}else{$env:CRM_STORAGE='supabase'}
 $env:NEXT_PUBLIC_SUPABASE_URL=$config.supabaseUrl
 $env:NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$config.supabasePublishableKey
 $env:NODE_ENV='production'

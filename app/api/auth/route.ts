@@ -1,7 +1,8 @@
+import {localMode,localApi} from '@/lib/local/api';
 import { isSameOrigin } from '@/lib/http';
 import { createSupabaseServer } from '@/lib/supabase/server';
 export const dynamic='force-dynamic';
-export async function POST(request:Request){
+export async function POST(request:Request){if(localMode())return localApi('auth',request);
   if(!isSameOrigin(request))return Response.json({error:'Origen inválido.'},{status:403});
   let body;try{body=await request.json()}catch{return Response.json({error:'Solicitud inválida.'},{status:400})}
   const supabase=await createSupabaseServer();

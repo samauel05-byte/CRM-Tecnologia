@@ -1,6 +1,7 @@
+import {localMode,localApi} from '@/lib/local/api';
 import { isSameOrigin } from '@/lib/http';
 import { createSupabaseServer } from '@/lib/supabase/server';
-export async function POST(request:Request){
+export async function POST(request:Request){if(localMode())return localApi('password',request);
   const headers={'Cache-Control':'private, no-store'};
   if(!isSameOrigin(request))return Response.json({error:'Origen inválido.'},{status:403,headers});
   const supabase=await createSupabaseServer();const {data:{user}}=await supabase.auth.getUser();

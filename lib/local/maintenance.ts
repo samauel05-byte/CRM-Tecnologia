@@ -1,0 +1,19 @@
+import {readFileSync,mkdirSync,copyFileSync,existsSync} from 'node:fs';
+import {join} from 'node:path';
+import nodemailer from 'nodemailer';
+import {localMode,digest,dataRoot,readState,transaction,assignees,addNotice,dailyBackup,database} from './store';
+export async function maintenance(request:Request){
+ if(!localMode())return new Response(null,{status:404});
+ const host=request.headers.get('host')||'';if(!/^(127\.0\.0\.1|localhost):\d+$/.test(host))return new Response(null,{status:403});
+ let config;try{config=JSON.parse(readFileSync(/*turbopackIgnore: true*/process.env.CRM_PRIVATE_CONFIG||join(dataRoot(),'privado.json'),'utf8').replace(/^\uFEFF/,''))}catch{return Response.json({error:'Falta la configuración local.'},{status:503})}
+ if(!config.maintenanceSecret||digest(request.headers.get('authorization')||'')!==digest('Bearer '+config.maintenanceSecret))return new Response(null,{status:403});
+ // A persisted lease protects the outbox when a previous maintenance call is still running.
+ const db=database(),time=Date.now();db.exec('BEGIN IMMEDIATE');try{const lock=db.prepare("SELECT value FROM metadata WHERE key='maintenance-lock'").get() as {value:string}|undefined;if(lock&&Number(lock.value)>time){db.exec('ROLLBACK');return Response.json({busy:true})}db.prepare("INSERT OR REPLACE INTO metadata(key,value) VALUES('maintenance-lock',?)").run(String(time+5*60000));db.exec('COMMIT')}catch{db.exec('ROLLBACK');return Response.json({error:'No se pudo iniciar el mantenimiento.'},{status:503})}
+ let sent=0,failed=0;
+ try{
+ transaction(state=>{state.notifications.filter(item=>item.email_status==='sending').forEach(item=>item.email_status='failed');for(const space of state.workspaces)for(const task of space.payload.tasks){if(task.deletedAt||task.status==='Completado'||!task.date)continue;const deadline=Date.parse(task.date+'T23:59:59-04:00');if(deadline<=time||deadline>time+24*60*60000)continue;for(const name of assignees(task)){const user=state.users.find(user=>user.username===name);if(user)addNotice(state,user.user_id,space.user_id,task,'due',`${space.user_id}/${task.id}/${user.user_id}/due/${task.date}`)}}});
+ if(config.smtp?.password){const transport=nodemailer.createTransport({host:config.smtp.host||'mail.gdlinea.com',port:465,secure:true,auth:{user:config.smtp.user,pass:config.smtp.password},connectionTimeout:15000,greetingTimeout:15000,socketTimeout:20000});try{const state=readState(),jobs=state.notifications.filter(item=>['pending','failed'].includes(item.email_status)&&item.email_attempts<5).slice(0,10);for(const item of jobs){const user=state.users.find(user=>user.user_id===item.recipient_id);if(!user||!/^\S+@\S+\.\S+$/.test(user.email))continue;transaction(state=>{const row=state.notifications.find(row=>row.id===item.id)!;row.email_attempts++;row.email_status='sending'});try{await transport.sendMail({from:{name:'CRM Tecnología',address:config.smtp.user},to:user.email,subject:item.title,messageId:'<'+item.id+'@crm.local>',text:item.message+'\n\nAbre tu CRM: '+config.appUrl});transaction(state=>{state.notifications.find(row=>row.id===item.id)!.email_status='sent'});sent++}catch{transaction(state=>{state.notifications.find(row=>row.id===item.id)!.email_status='failed'});failed++}}}finally{transport.close()}}
+ await dailyBackup();const folder=join(dataRoot(),'copias','adjuntos');mkdirSync(folder,{recursive:true});for(const file of readState().attachments.filter(file=>file.uploaded)){const source=join(dataRoot(),'adjuntos',file.id),target=join(folder,file.id);if(existsSync(source)&&!existsSync(target))copyFileSync(source,target)}
+ return Response.json({ok:true,sent,failed,emailConfigured:Boolean(config.smtp?.password)});
+ }catch{return Response.json({error:'No se pudo completar el mantenimiento local.'},{status:503})}finally{db.prepare("DELETE FROM metadata WHERE key='maintenance-lock'").run()}
+}

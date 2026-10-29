@@ -40,3 +40,22 @@ Este proceso actualiza el programa; no ejecuta migraciones de Supabase automatic
 Los cambios de base de datos deben prepararse aparte antes de publicar una version.
 Puedes pausar las actualizaciones deshabilitando CRM-Tecnologia-Actualizaciones
 en el Programador de tareas. GitHub Actions debe estar habilitado y tener minutos disponibles.
+
+MIGRACION A DATOS LOCALES
+El codigo actualizado admite una base SQLite local, sin depender de Supabase.
+Para cambiar una instalacion existente, utiliza el paquete privado de migracion
+con migracion-crm.json y ejecuta MIGRAR-A-LOCAL.cmd como administrador.
+Se conservan usuarios, contrasenas protegidas, roles, tareas y comentarios.
+La base se guarda en C:\ProgramData\CRM-Tecnologia\datos\crm.sqlite y los
+adjuntos en datos\adjuntos. Las actualizaciones no reemplazan esa carpeta.
+Una tarea de Windows ejecuta avisos y una copia de la base cada dia en datos\copias.
+Para los correos hay que introducir la clave SMTP en la PC; no se copia desde Supabase.
+El paquete privado de datos no se publica en GitHub. El codigo y los instaladores
+genericos si pueden mantenerse en la repo privada para actualizaciones.
+Si ya usa base local, no vuelvas a importar una copia anterior de los datos.
+
+ACCESO DESDE OTRAS VLAN
+Ejecuta AUTORIZAR-VLAN.cmd como administrador en la PC servidora e indica la
+subred privada autorizada en formato CIDR, por ejemplo 10.0.20.0/24.
+El router/firewall debe permitir desde esa red hacia 10.0.0.159 TCP puerto 3000.
+No requiere abrir puertos de Internet. Las redes autorizadas se conservan al actualizar.

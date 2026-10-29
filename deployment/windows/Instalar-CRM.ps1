@@ -15,6 +15,8 @@ foreach($item in @('app','runtime','configuracion.json','Iniciar-CRM.ps1','versi
 $configPath=Join-Path $destination 'configuracion.json'
 if($SourceConfigPath){Copy-Item -LiteralPath $SourceConfigPath -Destination $configPath -Force}
 $config=Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+$allowedSubnets=@('LocalSubnet')
+if($config.allowedSubnets){$allowedSubnets=@($config.allowedSubnets)}
 $config.puerto=$Puerto
 $config | ConvertTo-Json | Set-Content -LiteralPath $configPath -Encoding UTF8
 $taskName='CRM-Tecnologia'
@@ -30,8 +32,8 @@ $settings=New-ScheduledTaskSettingsSet -StartWhenAvailable -RestartCount 3 -Rest
 $runAs=New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
 Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Principal $runAs -Description 'CRM Tecnologia en la red local' -Force | Out-Null
 $rule='CRM-Tecnologia-LAN'
-if(Get-NetFirewallRule -Name $rule -ErrorAction SilentlyContinue){Set-NetFirewallRule -Name $rule -Enabled True -Profile Domain,Private -Action Allow;Get-NetFirewallRule -Name $rule | Get-NetFirewallPortFilter | Set-NetFirewallPortFilter -Protocol TCP -LocalPort $Puerto}
-else{New-NetFirewallRule -Name $rule -DisplayName 'CRM Tecnologia - red local' -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Puerto -RemoteAddress LocalSubnet -Profile Domain,Private -Program (Join-Path $destination 'runtime/node.exe') | Out-Null}
+if(Get-NetFirewallRule -Name $rule -ErrorAction SilentlyContinue){Set-NetFirewallRule -Name $rule -Enabled True -Profile Domain,Private -Action Allow -RemoteAddress $allowedSubnets;Get-NetFirewallRule -Name $rule | Get-NetFirewallPortFilter | Set-NetFirewallPortFilter -Protocol TCP -LocalPort $Puerto}
+else{New-NetFirewallRule -Name $rule -DisplayName 'CRM Tecnologia - red local' -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Puerto -RemoteAddress $allowedSubnets -Profile Domain,Private -Program (Join-Path $destination 'runtime/node.exe') | Out-Null}
 Get-NetFirewallRule -Name $rule | Get-NetFirewallApplicationFilter | Set-NetFirewallApplicationFilter -Program (Join-Path $destination 'runtime/node.exe')
 Start-ScheduledTask -TaskName $taskName
 $healthy=$false

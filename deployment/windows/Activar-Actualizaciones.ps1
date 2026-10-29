@@ -6,7 +6,7 @@ if(-not(Test-Path (Join-Path $InstallRoot 'activo.json'))){throw 'Instala primer
 $gh=Get-Command gh.exe -ErrorAction SilentlyContinue
 if(-not $gh){Write-Host 'Instala GitHub CLI desde https://cli.github.com y vuelve a ejecutar este archivo.';Start-Process 'https://cli.github.com';Read-Host 'Pulsa Enter';exit 1}
 & $gh.Source auth status --hostname github.com
-if($LASTEXITCODE -ne 0){Write-Host 'Inicia sesion con la cuenta que tiene acceso a CRM-Tecnologia. La clave no se guarda en el CRM.';& $gh.Source auth login --hostname github.com --git-protocol https --web;if($LASTEXITCODE -ne 0){throw 'No se completo el inicio de sesion.'}}
+if($LASTEXITCODE -ne 0){Write-Host 'Inicia sesion con la cuenta que tiene acceso a CRM-Tecnologia. La clave no se guarda en el CRM. Si pregunta Authenticate Git, elige No.';& $gh.Source auth login --hostname github.com --git-protocol https --web;if($LASTEXITCODE -ne 0){& $gh.Source auth status --hostname github.com;if($LASTEXITCODE -ne 0){throw 'No se completo el inicio de sesion.'}}}
 & $gh.Source api repos/samauel05-byte/CRM-Tecnologia --silent
 if($LASTEXITCODE -ne 0){throw 'Esta cuenta no puede consultar la repo del CRM.'}
 $target=Join-Path $InstallRoot 'actualizador'

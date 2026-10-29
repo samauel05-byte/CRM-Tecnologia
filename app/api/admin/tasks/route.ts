@@ -1,8 +1,9 @@
+import {localMode,localApi} from '@/lib/local/api';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { getCrmRole } from '@/lib/supabase/role';
 import { isSameOrigin } from '@/lib/http';
 export const dynamic='force-dynamic';
-export async function GET(){
+export async function GET(request:Request){if(localMode())return localApi('tasks',request);
  const headers={'Cache-Control':'private, no-store'};
  const supabase=await createSupabaseServer();const {data:{user}}=await supabase.auth.getUser();
  if(!user)return Response.json({error:'Inicia sesión.'},{status:401,headers});
@@ -15,7 +16,7 @@ export async function GET(){
   return Response.json({tasks},{headers});
  }catch{return Response.json({error:'No se pudieron cargar las tareas del equipo.'},{status:503,headers})}
 }
-export async function PATCH(request:Request){
+export async function PATCH(request:Request){if(localMode())return localApi('tasks',request);
  const headers={'Cache-Control':'private, no-store'};
  if(!isSameOrigin(request))return Response.json({error:'Origen inválido.'},{status:403,headers});
  const supabase=await createSupabaseServer();const {data:{user}}=await supabase.auth.getUser();

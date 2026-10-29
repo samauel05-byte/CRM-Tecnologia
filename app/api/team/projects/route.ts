@@ -1,9 +1,10 @@
+import {localMode,localApi} from '@/lib/local/api';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { isSameOrigin } from '@/lib/http';
 export const dynamic='force-dynamic';
-export async function POST(request:Request){return mutate(request,false)}
-export async function PATCH(request:Request){return mutate(request,true)}
-export async function DELETE(request:Request){
+export async function POST(request:Request){if(localMode())return localApi('projects',request);return mutate(request,false)}
+export async function PATCH(request:Request){if(localMode())return localApi('projects',request);return mutate(request,true)}
+export async function DELETE(request:Request){if(localMode())return localApi('projects',request);
  const headers={'Cache-Control':'private, no-store'};
  if(!isSameOrigin(request))return Response.json({error:'Origen inválido.'},{status:403,headers});
  const supabase=await createSupabaseServer();const {data:{user}}=await supabase.auth.getUser();

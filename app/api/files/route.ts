@@ -1,8 +1,9 @@
+import {localMode,localApi} from '@/lib/local/api';
 import { isSameOrigin } from '@/lib/http';
 import { createSupabaseServer } from '@/lib/supabase/server';
 export const dynamic='force-dynamic';
 const bucket='crm-attachments';
-export async function POST(request:Request){
+export async function POST(request:Request){if(localMode())return localApi('files',request);
   if(!isSameOrigin(request))return Response.json({error:'Origen inválido.'},{status:403});
   const supabase=await createSupabaseServer(),{data:{user}}=await supabase.auth.getUser();if(!user)return Response.json({error:'Inicia sesión.'},{status:401});
   let body;try{body=await request.json()}catch{return Response.json({error:'Solicitud inválida.'},{status:400})}
@@ -14,7 +15,7 @@ export async function POST(request:Request){
   if(rowError)return Response.json({error:'No se pudo registrar el archivo.'},{status:503});
   return Response.json({id,name:body.name,size:body.size,uploadUrl:signed.signedUrl},{headers:{'Cache-Control':'private, no-store'}});
 }
-export async function GET(request:Request){
+export async function GET(request:Request){if(localMode())return localApi('files',request);
   const supabase=await createSupabaseServer(),{data:{user}}=await supabase.auth.getUser();if(!user)return new Response(null,{status:401});
   const id=new URL(request.url).searchParams.get('id');if(!id||!/^[a-f0-9-]{36}$/.test(id))return new Response(null,{status:400});
   const {data:file,error}=await supabase.from('crm_attachments').select('name').eq('id',id).eq('user_id',user.id).maybeSingle();
@@ -23,3 +24,5 @@ export async function GET(request:Request){
   if(storageError)return new Response(null,{status:404});
   return new Response(null,{status:302,headers:{Location:signed.signedUrl,'Cache-Control':'private, no-store'}});
 }
+
+export async function PUT(request:Request){if(localMode())return localApi('files',request);return Response.json({error:'No permitido.'},{status:405})}

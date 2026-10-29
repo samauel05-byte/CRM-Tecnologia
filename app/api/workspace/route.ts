@@ -1,10 +1,11 @@
+import {localMode,localApi} from '@/lib/local/api';
 import { getCrmRole } from '@/lib/supabase/role';
 import { stampTaskUpdates } from '@/lib/task-updates';
 import { isSameOrigin } from '@/lib/http';
 import { createSupabaseServer } from '@/lib/supabase/server';
 export const dynamic='force-dynamic';
 const respond=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'private, no-store'}});
-export async function GET(){
+export async function GET(request:Request){if(localMode())return localApi('workspace',request);
   const supabase=await createSupabaseServer();const {data:{user}}=await supabase.auth.getUser();
   if(!user)return respond({error:'Inicia sesión para acceder.'},401);
   const {data:row,error}=await supabase.from('crm_workspaces').select('payload,revision').eq('user_id',user.id).maybeSingle();
@@ -14,7 +15,7 @@ export async function GET(){
   if(projectError)return respond({error:'No se pudieron cargar los proyectos del equipo.'},503);
   return respond({data:row?.payload||null,projects:projects.map(project=>project.name),revision:row?.revision||0,user:{id:user.id,name:permissions.username||user.user_metadata?.full_name||user.email,email:user.email,role:permissions.role}});
 }
-export async function PUT(request:Request){
+export async function PUT(request:Request){if(localMode())return localApi('workspace',request);
   if(!isSameOrigin(request))return respond({error:'Origen inválido.'},403);
   const supabase=await createSupabaseServer();const {data:{user}}=await supabase.auth.getUser();if(!user)return respond({error:'Inicia sesión para guardar.'},401);
   const raw=await request.text();if(raw.length>1500000)return respond({error:'El espacio supera el tamaño permitido.'},413);
