@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id),statuses=['Pendiente','En curso','Completado'],key='dupla-workspace-v1';
-const initial={projects:[],tasks:[]};
+const initial={projects:['Oficina','Oficina Vista Cana','Proyectos'],tasks:[]};
 let currentUserName='Mi usuario';let data=structuredClone(initial);let view='list',selected='',mine=false,editing=null,dragging=null;
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function save(){try{localStorage.setItem(key,JSON.stringify(data));return true}catch{toast('No se pudo guardar: el almacenamiento está lleno o bloqueado.');return false}}function toast(s){$('toast').textContent=s;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',3000)}function initials(s){return(s||'Sin asignar').split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase()}function date(s){return s?new Date(s+'T12:00:00').toLocaleDateString('es',{day:'numeric',month:'short'}):'Sin fecha'}
 function visible(){let q=$('search').value.toLocaleLowerCase();return data.tasks.filter(t=>(!selected||t.project===selected)&&(!mine||t.owner===currentUserName)&&(!$('filter').value||t.priority===$('filter').value)&&(!q||(t.name+' '+t.description+' '+t.owner).toLocaleLowerCase().includes(q)))}
