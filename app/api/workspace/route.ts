@@ -1,3 +1,4 @@
+import { getCrmRole } from '@/lib/supabase/role';
 import { isSameOrigin } from '@/lib/http';
 import { createSupabaseServer } from '@/lib/supabase/server';
 export const dynamic='force-dynamic';
@@ -7,7 +8,8 @@ export async function GET(){
   if(!user)return respond({error:'Inicia sesión para acceder.'},401);
   const {data:row,error}=await supabase.from('crm_workspaces').select('payload,revision').eq('user_id',user.id).maybeSingle();
   if(error){console.error('Workspace read failed',error.code);return respond({error:'No se pudo cargar el espacio. Intenta de nuevo.'},503)}
-  return respond({data:row?.payload||null,revision:row?.revision||0,user:{name:user.user_metadata?.full_name||user.email,email:user.email}});
+  let permissions;try{permissions=await getCrmRole(supabase,user.id)}catch{return respond({error:'No se pudieron verificar los permisos.'},503)}
+  return respond({data:row?.payload||null,revision:row?.revision||0,user:{name:permissions.username||user.user_metadata?.full_name||user.email,email:user.email,role:permissions.role}});
 }
 export async function PUT(request:Request){
   if(!isSameOrigin(request))return respond({error:'Origen inválido.'},403);
