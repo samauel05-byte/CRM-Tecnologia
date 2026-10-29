@@ -1,4 +1,4 @@
-param([string]$InstallRoot="$env:ProgramData\CRM-Tecnologia",[int]$Puerto=3000)
+param([string]$InstallRoot="$env:ProgramData\CRM-Tecnologia",[int]$Puerto=3000,[string]$SourceConfigPath,[switch]$NoPause)
 $ErrorActionPreference='Stop'
 $identity=[Security.Principal.WindowsIdentity]::GetCurrent()
 $principal=New-Object Security.Principal.WindowsPrincipal($identity)
@@ -11,14 +11,17 @@ $version=Get-Date -Format 'yyyyMMdd-HHmmss'
 $destination=Join-Path $InstallRoot "versiones\$version"
 New-Item -ItemType Directory -Path $destination -Force | Out-Null
 Write-Host 'Preparando CRM Tecnologia para la red local...'
-foreach($item in @('app','runtime','configuracion.json','Iniciar-CRM.ps1')){Copy-Item -LiteralPath (Join-Path $source $item) -Destination $destination -Recurse -Force}
+foreach($item in @('app','runtime','configuracion.json','Iniciar-CRM.ps1','version.json')){Copy-Item -LiteralPath (Join-Path $source $item) -Destination $destination -Recurse -Force}
 $configPath=Join-Path $destination 'configuracion.json'
+if($SourceConfigPath){Copy-Item -LiteralPath $SourceConfigPath -Destination $configPath -Force}
 $config=Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
 $config.puerto=$Puerto
 $config | ConvertTo-Json | Set-Content -LiteralPath $configPath -Encoding UTF8
 $taskName='CRM-Tecnologia'
 $oldTask=Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
 if($oldTask){Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue}
+$versionsRoot=[IO.Path]::GetFullPath((Join-Path $InstallRoot 'versiones'))+'\'
+Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object {$_.ExecutablePath -and $_.ExecutablePath.StartsWith($versionsRoot,[StringComparison]::OrdinalIgnoreCase)} | ForEach-Object {Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue}
 $startScript=Join-Path $destination 'Iniciar-CRM.ps1'
 $arguments='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$startScript+'"'
 $action=New-ScheduledTaskAction -Execute "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument $arguments -WorkingDirectory $destination
@@ -34,6 +37,8 @@ Start-ScheduledTask -TaskName $taskName
 $healthy=$false
 for($attempt=0;$attempt -lt 30;$attempt++){try{$response=Invoke-WebRequest -Uri "http://127.0.0.1:$Puerto/login" -UseBasicParsing -TimeoutSec 2;if($response.StatusCode -eq 200){$healthy=$true;break}}catch{};Start-Sleep -Seconds 1}
 if(-not $healthy){throw "No se pudo iniciar el CRM. Revisa $destination\logs\errores.log"}
+$packageVersion=Get-Content -LiteralPath (Join-Path $destination 'version.json') -Raw | ConvertFrom-Json
+@{path=$destination;puerto=$Puerto;commit=$packageVersion.commit} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $InstallRoot 'activo.json') -Encoding UTF8
 $routes=Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric
 $addresses=@(foreach($route in $routes){Get-NetIPAddress -InterfaceIndex $route.InterfaceIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object {$_.IPAddress -notlike '169.254.*' -and $_.IPAddress -ne '127.0.0.1'} | Select-Object -ExpandProperty IPAddress}) | Select-Object -Unique
 $urls=@($addresses | ForEach-Object {"http://$($_):$Puerto"})
@@ -41,4 +46,4 @@ $urls=@($addresses | ForEach-Object {"http://$($_):$Puerto"})
 Write-Host 'CRM instalado y funcionando.' -ForegroundColor Green
 $urls | ForEach-Object {Write-Host $_ -ForegroundColor Cyan}
 Write-Host "Datos de acceso guardados en $InstallRoot\ACCESO-CRM.txt"
-Read-Host 'Pulsa Enter para cerrar'
+if(-not $NoPause){Read-Host 'Pulsa Enter para cerrar'}

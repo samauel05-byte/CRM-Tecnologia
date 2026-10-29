@@ -20,3 +20,23 @@ La direccion debe fijarse mediante reserva DHCP para que no cambie.
 No se debe retirar Vercel hasta comprobar que ambos pueden entrar a la nueva direccion.
 El servidor se instala en C:\ProgramData\CRM-Tecnologia y registra la tarea CRM-Tecnologia.
 El archivo ACCESO-CRM.txt y la carpeta logs contienen la direccion y el diagnostico.
+
+ACTUALIZACIONES DESDE GITHUB
+1. Instala GitHub CLI desde https://cli.github.com en la PC servidora.
+2. Ejecuta ACTIVAR-ACTUALIZACIONES.cmd como administrador, con tu usuario Windows habitual.
+3. Inicia sesion en el navegador con la cuenta que tiene acceso a la repo privada.
+4. Mantén abierta esa sesion de Windows. Puedes bloquear la pantalla.
+
+Cada cambio en main genera un paquete Windows en GitHub Actions. Solo si compila
+y arranca correctamente, la PC lo descarga e instala al comprobar cada 5 minutos.
+La instalacion tarda unos segundos y reinicia el CRM. Los datos siguen en Supabase.
+Se conservan el puerto, la configuracion y las versiones anteriores. Si falla el
+arranque nuevo, se restaura el arranque anterior. Los errores se registran en
+C:\ProgramData\CRM-Tecnologia\actualizaciones.log.
+Si cierras sesion en Windows, el CRM sigue funcionando, pero las actualizaciones
+esperan a que vuelvas a iniciar sesion. El acceso privado usa GitHub CLI, sin
+copiar contrasenas ni tokens en archivos del CRM. No compartas esos datos por chat.
+Este proceso actualiza el programa; no ejecuta migraciones de Supabase automaticamente.
+Los cambios de base de datos deben prepararse aparte antes de publicar una version.
+Puedes pausar las actualizaciones deshabilitando CRM-Tecnologia-Actualizaciones
+en el Programador de tareas. GitHub Actions debe estar habilitado y tener minutos disponibles.

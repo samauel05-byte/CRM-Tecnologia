@@ -1,0 +1,55 @@
+name: CRM Windows
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: crm-windows-main
+  cancel-in-progress: true
+jobs:
+  package:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.22.1'
+          cache: npm
+      - run: npm ci
+      - name: Build
+        shell: pwsh
+        run: |
+          $config=Get-Content deployment/windows/configuracion-publica.json -Raw | ConvertFrom-Json
+          $env:NEXT_PUBLIC_SUPABASE_URL=$config.supabaseUrl
+          $env:NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$config.supabasePublishableKey
+          npm run build
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+      - name: Package and check
+        shell: pwsh
+        run: |
+          ./deployment/windows/Empaquetar-CRM.ps1 -Destino "$env:RUNNER_TEMP/crm-package"
+          $env:NODE_ENV='production'
+          $env:HOSTNAME='127.0.0.1'
+          $env:PORT='3099'
+          $config=Get-Content deployment/windows/configuracion-publica.json -Raw | ConvertFrom-Json
+          $env:NEXT_PUBLIC_SUPABASE_URL=$config.supabaseUrl
+          $env:NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$config.supabasePublishableKey
+          $server=Start-Process -FilePath "$env:RUNNER_TEMP/crm-package/runtime/node.exe" -ArgumentList "$env:RUNNER_TEMP/crm-package/app/server.js" -WindowStyle Hidden -PassThru
+          try {
+            $healthy=$false
+            for($i=0;$i -lt 30;$i++){try{if((Invoke-WebRequest http://127.0.0.1:3099/login -TimeoutSec 2).StatusCode -eq 200){$healthy=$true;break}}catch{};Start-Sleep 1}
+            if(-not $healthy){throw 'El paquete no arranca.'}
+            if((Invoke-WebRequest http://127.0.0.1:3099/icons.js).StatusCode -ne 200){throw 'Faltan recursos.'}
+          } finally {Stop-Process -Id $server.Id -ErrorAction SilentlyContinue}
+          Compress-Archive -Path "$env:RUNNER_TEMP/crm-package/*" -DestinationPath "$env:RUNNER_TEMP/CRM-Tecnologia-Windows.zip"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: crm-windows
+          path: ${{ runner.temp }}/CRM-Tecnologia-Windows.zip
+          retention-days: 14
+          if-no-files-found: error
