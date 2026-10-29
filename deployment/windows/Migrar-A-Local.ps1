@@ -6,9 +6,9 @@ $snapshot=Join-Path $PSScriptRoot 'migracion-crm.json'
 if(-not(Test-Path -LiteralPath $snapshot)){throw 'Falta migracion-crm.json. Usa el paquete privado de migracion, que incluye los datos actuales.'}
 $active=Get-Content (Join-Path $InstallRoot 'activo.json') -Raw | ConvertFrom-Json
 $oldConfig=Get-Content (Join-Path $active.path 'configuracion.json') -Raw | ConvertFrom-Json
-if($oldConfig.storage -eq 'local'){Write-Host 'Esta instalacion ya usa la base local. No se sobrescribiran los datos.';Read-Host 'Pulsa Enter';exit 0}
+
 $dataDirectory=Join-Path $InstallRoot 'datos'
-if(Test-Path (Join-Path $dataDirectory 'crm.sqlite')){throw 'Ya hay una base local. Consulta antes de repetir la migracion.'}
+if(Test-Path (Join-Path $dataDirectory 'crm.sqlite')){& (Join-Path $PSScriptRoot 'Reparar-Migracion-Local.ps1') -InstallRoot $InstallRoot;return}
 New-Item -ItemType Directory -Path $dataDirectory -Force | Out-Null
 & icacls.exe $dataDirectory /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
 if($LASTEXITCODE -ne 0){throw 'No se pudo proteger la carpeta de datos.'}
@@ -50,6 +50,9 @@ try{
  Write-Host 'Entra con Samuel y Elvis, revisa las tareas y confirma en el chat antes de retirar Vercel.'
  if(-not $smtpSecret.Length){Write-Host 'Pendiente: configurar la clave SMTP para los avisos por correo.' -ForegroundColor Yellow}
 }catch{
+ $originalFailure=$_.Exception.Message
+ Add-Content (Join-Path $InstallRoot 'reparacion-local.log') ((Get-Date -Format s)+' Error original de migracion: '+$originalFailure)
+ Write-Host ('Detalle original: '+$originalFailure) -ForegroundColor Yellow
  Stop-ScheduledTask -TaskName 'CRM-Tecnologia' -ErrorAction SilentlyContinue
  $versionsRoot=[IO.Path]::GetFullPath((Join-Path $InstallRoot 'versiones'))+'\'
  Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object {$_.ExecutablePath -and $_.ExecutablePath.StartsWith($versionsRoot,[StringComparison]::OrdinalIgnoreCase)} | ForEach-Object {Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue}
