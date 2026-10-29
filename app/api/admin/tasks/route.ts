@@ -21,7 +21,7 @@ export async function PATCH(request:Request){
  const supabase=await createSupabaseServer();const {data:{user}}=await supabase.auth.getUser();
  if(!user)return Response.json({error:'Inicia sesión.'},{status:401,headers});
  try{
-  if((await getCrmRole(supabase,user.id)).role!=='admin')return Response.json({error:'Solo el administrador puede editar tareas del equipo.'},{status:403,headers});
+  if(!(await getCrmRole(supabase,user.id)).username)return Response.json({error:'No tienes acceso al equipo.'},{status:403,headers});
   const raw=await request.text();if(raw.length>20000)return Response.json({error:'La tarea es demasiado extensa.'},{status:400,headers});
   let body;try{body=JSON.parse(raw)}catch{return Response.json({error:'Solicitud inválida.'},{status:400,headers})}
   if(typeof body.workspaceId!=='string'||!/^[0-9a-f-]{36}$/i.test(body.workspaceId)||typeof body.taskId!=='string'||body.taskId.length>100||!Number.isSafeInteger(body.revision)||body.revision<1||!body.patch||typeof body.patch!=='object'||Array.isArray(body.patch))return Response.json({error:'Datos inválidos.'},{status:400,headers});

@@ -12,6 +12,6 @@ export async function GET(){
   if(spaces.error||people.error||projects.error)throw new Error('read');
   const names=new Map((people.data as {user_id:string;username:string}[]).map(person=>[person.user_id,person.username]));
   const tasks=spaces.data.flatMap(space=>(space.payload.tasks||[]).filter((task:{deletedAt?:string})=>!task.deletedAt).map((task:Record<string,unknown>)=>({...task,workspaceId:space.user_id,workspaceRevision:space.revision,workspaceProjects:projects.data.map(project=>project.name),workspaceStatuses:space.payload.statuses||['Pendiente','En curso','Completado','Sin asignar'],createdBy:names.get(space.user_id)||'Usuario del equipo'})));
-  return Response.json({tasks,canEdit:role.role==='admin'},{headers});
+  return Response.json({tasks,canEdit:true},{headers});
  }catch{return Response.json({error:'No se pudieron cargar las tareas del equipo.'},{status:503,headers})}
 }
