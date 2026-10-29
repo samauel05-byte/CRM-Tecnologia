@@ -2,3 +2,5 @@
 .childrow{display:flex;gap:15px;align-items:center;padding:12px;border-bottom:1px solid var(--line);font-size:12px}.childrow span{font-size:10px;color:#8ca095}.childrow button{color:#167a68;text-align:left}
 .board{grid-template-columns:repeat(var(--columns,3),minmax(230px,1fr))}
 .trashrow button.primary{color:#fff}
+
+.task-status{display:inline-block;border-radius:5px;padding:4px 7px;font-size:10px;font-weight:700;margin:4px 5px 4px 0;white-space:nowrap}.task-status.unassigned{background:#edf0f3;color:#596573}.task-status.pending{background:#e3edff;color:#245cbd}.task-status.completed{background:#e1f5e8;color:#227342}.task-status.overdue{background:#ffe4e4;color:#b52d37}.task-status.progress{background:#fff0d9;color:#926012}.task-status.custom{background:#f0e9ff;color:#7050a8}.task-updated{font-size:10px;color:#77838c;margin:5px 0}.trashrow button[data-edit-user]{color:#fff!important;min-width:76px}#status.task-status{font-size:13px;padding:10px}

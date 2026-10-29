@@ -1,4 +1,5 @@
 import { getCrmRole } from '@/lib/supabase/role';
+import { stampTaskUpdates } from '@/lib/task-updates';
 import { isSameOrigin } from '@/lib/http';
 import { createSupabaseServer } from '@/lib/supabase/server';
 export const dynamic='force-dynamic';
@@ -19,9 +20,14 @@ export async function PUT(request:Request){
   const {data,revision}=body;const statuses=data?.statuses||['Pendiente','En curso','Completado'];
   if(!Array.isArray(statuses)||statuses.length<3||statuses.length>20||statuses.some((s:unknown)=>typeof s!=='string'||s.length>40)||new Set(statuses).size!==statuses.length||!['Pendiente','En curso','Completado'].every(s=>statuses.includes(s)))return respond({error:'Estados inválidos.'},400);
   if(!data||!Array.isArray(data.projects)||!Array.isArray(data.tasks)||!Number.isSafeInteger(revision)||revision<0||data.tasks.length>3000||data.projects.length>200||data.projects.some((p:unknown)=>typeof p!=='string')||data.tasks.some((t:{id?:unknown;name?:unknown;status?:unknown;comments?:unknown})=>!t||typeof t.id!=='string'||typeof t.name!=='string'||!statuses.includes(t.status)||!Array.isArray(t.comments)))return respond({error:'Formato del espacio inválido.'},400);
-  const record={payload:data,revision:revision+1,updated_at:new Date().toISOString()};
+  const {data:previous,error:readError}=await supabase.from('crm_workspaces').select('payload,revision').eq('user_id',user.id).maybeSingle();
+  if(readError)return respond({error:'No se pudo verificar el espacio.'},503);
+  if((previous?.revision||0)!==revision)return respond({error:'Este espacio cambió. Recarga para continuar.'},409);
+  const now=new Date().toISOString();
+  data.tasks=stampTaskUpdates(data.tasks,previous?.payload?.tasks||[],now);
+  const record={payload:data,revision:revision+1,updated_at:now};
   const result=revision===0?await supabase.from('crm_workspaces').insert({user_id:user.id,...record}).select('revision').maybeSingle():await supabase.from('crm_workspaces').update(record).eq('user_id',user.id).eq('revision',revision).select('revision').maybeSingle();
   if(result.error?.code==='23505'||(!result.error&&!result.data))return respond({error:'Este espacio cambió en otra pestaña o dispositivo. Descarga tus cambios y recarga.'},409);
   if(result.error){console.error('Workspace save failed',result.error.code);return respond({error:'No se pudieron guardar los cambios. Intenta de nuevo.'},503)}
-  return respond({revision:result.data!.revision});
+  return respond({revision:result.data!.revision,taskUpdates:Object.fromEntries(data.tasks.map((task:{id:string;updatedAt?:string})=>[task.id,task.updatedAt||null]))});
 }
