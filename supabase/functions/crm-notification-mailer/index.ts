@@ -12,7 +12,8 @@ async function sendMail(email:string,title:string,message:string,id:string,passw
  try{
   await reply([220]);await command('EHLO crm.local',[250]);await command('AUTH LOGIN',[334]);await command(base64('sroa@grupodupla.com'),[334]);await command(base64(password),[235]);
   await command('MAIL FROM:<sroa@grupodupla.com>',[250]);await command('RCPT TO:<'+email+'>',[250,251]);await command('DATA',[354]);
-  const html='<div style="font-family:Arial,sans-serif;color:#234b38;max-width:560px;margin:auto;padding:30px"><h2>'+escapeHtml(title)+'</h2><p style="line-height:1.8">'+escapeHtml(message)+'</p><p><a href="https://tecnologiacrm.vercel.app/" style="background:#157765;color:white;padding:12px 18px;text-decoration:none;border-radius:6px">Abrir CRM Tecnología</a></p><p style="font-size:11px;color:#8b9e91">Aviso automático de tu equipo de trabajo.</p></div>';
+  const appUrl=Deno.env.get('CRM_APP_URL')||'https://tecnologiacrm.vercel.app/';
+  const html='<div style="font-family:Arial,sans-serif;color:#234b38;max-width:560px;margin:auto;padding:30px"><h2>'+escapeHtml(title)+'</h2><p style="line-height:1.8">'+escapeHtml(message)+'</p><p><a href="'+escapeHtml(appUrl)+'" style="background:#157765;color:white;padding:12px 18px;text-decoration:none;border-radius:6px">Abrir CRM Tecnología</a></p><p style="font-size:11px;color:#8b9e91">Aviso automático de tu equipo de trabajo.</p></div>';
   const encoded=base64(html).match(/.{1,76}/g)!.join('\r\n');
   await command('From: CRM Tecnologia <sroa@grupodupla.com>\r\nTo: <'+email+'>\r\nSubject: =?UTF-8?B?'+base64(title)+'?=\r\nDate: '+new Date().toUTCString()+'\r\nMessage-ID: <'+id+'@crm.grupodupla.com>\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n'+encoded+'\r\n.',[250]);
   await command('QUIT',[221]);

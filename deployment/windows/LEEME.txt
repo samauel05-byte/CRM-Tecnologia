@@ -1,0 +1,22 @@
+CRM TECNOLOGIA - INSTALACION EN OTRA PC WINDOWS
+
+1. Copia este ZIP a la PC que servira el CRM. Debe usar Windows de 64 bits (x64).
+2. Extrae TODO el ZIP en una carpeta. No abras el instalador dentro del ZIP.
+3. Haz clic derecho en INSTALAR.cmd y elige Ejecutar como administrador.
+4. Al terminar aparecera una direccion, por ejemplo http://192.168.1.50:3000.
+5. Abre esa direccion desde la PC de Samuel y la de Elvis, en la misma red.
+6. Envia la direccion al chat para terminar los retornos de acceso y los enlaces de correo.
+
+No necesitas instalar Node.js ni descargar dependencias: el paquete las incluye.
+El CRM arrancara automaticamente al encender la PC, sin abrir ventanas.
+El firewall permite acceso solo desde la red local, en redes Privadas o de Dominio.
+No cambia una red Publica a Privada. Si la PC usa una red Publica, pide al administrador de red que revise el acceso.
+
+La base de datos, los usuarios, los archivos y los correos siguen en Supabase.
+La PC servidora debe estar encendida y tener Internet. Los datos existentes se conservan.
+Los navegadores pueden requerir HTTPS para avisos emergentes en una IP local; los avisos dentro del CRM y por correo siguen funcionando.
+
+La direccion debe fijarse mediante reserva DHCP para que no cambie.
+No se debe retirar Vercel hasta comprobar que ambos pueden entrar a la nueva direccion.
+El servidor se instala en C:\ProgramData\CRM-Tecnologia y registra la tarea CRM-Tecnologia.
+El archivo ACCESO-CRM.txt y la carpeta logs contienen la direccion y el diagnostico.
