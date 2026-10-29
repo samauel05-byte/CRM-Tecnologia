@@ -1,0 +1,34 @@
+TECNOLOGIA - OPERACION Y RECUPERACION
+
+Reportes: Seguimiento > Reportes. Filtra proyecto, responsable, estado y fecha de terminacion.
+Exportar para Excel produce un CSV UTF-8 con separador punto y coma.
+Imprimir / PDF abre una vista preparada para imprimir; selecciona Guardar como PDF en el navegador.
+
+Historial: Seguimiento > Historial de cambios. Registra los cambios nuevos con usuario, fecha y campos modificados. Los cambios anteriores a su activacion no se reconstruyen.
+
+Recuperacion de acceso: Olvidaste tu contrasena en el inicio de sesion. El enlace vence en 20 minutos, funciona una sola vez y cierra las sesiones anteriores al guardar una nueva contrasena. El SMTP debe funcionar y el enlace se abre desde la red de la oficina.
+
+Estado del sistema: Solo el administrador. Muestra los ultimos envios, avisos fallidos, mantenimiento y copias. La prueba de correo se envia solamente a las cuentas registradas.
+
+COPIAS
+La carpeta datos esta protegida para administradores y SYSTEM. El mantenimiento conserva copias locales y crea instantaneas con la base, los adjuntos y la configuracion privada.
+Configurar-Copia-Externa.ps1 -Destino E:\RespaldoTecnologia configura un disco fisico distinto. Tambien admite una carpeta compartida de otro equipo; la cuenta del servicio debe tener acceso.
+La copia externa usa AES-256-GCM y un manifiesto autenticado. Antes de marcarla correcta, el sistema descifra los archivos en una carpeta temporal y verifica la base y sus registros.
+Descarga la clave desde Estado del sistema usando HTTPS. Guardala en un lugar independiente del servidor y separado de las copias. Sin esa clave no se pueden recuperar las copias cifradas.
+
+RESTAURACION
+No se sobrescribe automaticamente la base activa. Ejecuta Restaurar-Copia.ps1 como administrador indicando -Copia, -Clave y -Destino, donde Destino es una carpeta nueva y vacia.
+El programa comprueba autenticidad, descifra y valida usuarios, credenciales, tareas y adjuntos. Las sesiones anteriores quedan cerradas. Conserva nombres, roles y contrasenas.
+Antes de apuntar el sistema a la carpeta restaurada, detén el CRM y guarda la base anterior. Revisa la direccion de la aplicacion y el correo. Si cambio el servidor, configura nuevamente HTTPS y la confianza del certificado en los clientes.
+Prueba la restauracion periodicamente y conserva varias fechas de copia. No elimines las copias anteriores para resolver un fallo de acceso.
+
+HTTPS EN RED LOCAL
+Se conserva la direccion IP y el puerto 3000. HTTPS y HTTP pueden coexistir durante la instalacion del certificado en las PCs.
+El servidor interno se mueve a 127.0.0.1:3001. El acceso publico permanece en 3000; no hace falta ampliar la regla del Fortinet.
+El certificado publico se instala en las PCs de confianza. Nunca compartas tecnologia.pfx, su clave privada ni datos/privado.json.
+Una vez reconocida la confianza en todas las PCs, activa tlsEnforce en la configuracion privada y reinicia el CRM. HTTP redirigira a HTTPS. El certificado tiene vencimiento; revisalo antes de renovarlo.
+El proxy TLS se ejecuta en una tarea separada y usa un ejecutable estable para sobrevivir a las actualizaciones del CRM.
+
+ACTUALIZACIONES
+La PC comprueba las versiones verificadas de GitHub cada cinco minutos mientras la sesion de Windows configurada permanezca abierta. Puedes bloquearla.
+Las pantallas nuevas consultan la version cada minuto y al volver a la ventana. Cuando cambia, muestran Actualizar ahora. Guarda y cierra los detalles antes de recargar.

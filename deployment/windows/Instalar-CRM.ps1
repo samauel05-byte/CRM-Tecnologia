@@ -37,14 +37,16 @@ else{New-NetFirewallRule -Name $rule -DisplayName 'CRM Tecnologia - red local' -
 Get-NetFirewallRule -Name $rule | Get-NetFirewallApplicationFilter | Set-NetFirewallApplicationFilter -Program (Join-Path $destination 'runtime/node.exe')
 Start-ScheduledTask -TaskName $taskName
 $healthy=$false
-for($attempt=0;$attempt -lt 30;$attempt++){try{$response=Invoke-WebRequest -Uri "http://127.0.0.1:$Puerto/login" -UseBasicParsing -TimeoutSec 2;if($response.StatusCode -eq 200){$healthy=$true;break}}catch{};Start-Sleep -Seconds 1}
+for($attempt=0;$attempt -lt 30;$attempt++){try{$response=Invoke-WebRequest -Uri "http://127.0.0.1:$Puerto/login" -UseBasicParsing -TimeoutSec 2;if($response.StatusCode -eq 200){if($config.storage -eq 'local'){if(-not((Invoke-RestMethod -Uri "http://127.0.0.1:$Puerto/api/local/status" -TimeoutSec 2).local)){throw 'No se confirmo almacenamiento local.'}};$healthy=$true;break}}catch{};Start-Sleep -Seconds 1}
 if(-not $healthy){throw "No se pudo iniciar el CRM. Revisa $destination\logs\errores.log"}
 $packageVersion=Get-Content -LiteralPath (Join-Path $destination 'version.json') -Raw | ConvertFrom-Json
 @{path=$destination;puerto=$Puerto;commit=$packageVersion.commit} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $InstallRoot 'activo.json') -Encoding UTF8
 $routes=Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric
 $addresses=@(foreach($route in $routes){Get-NetIPAddress -InterfaceIndex $route.InterfaceIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object {$_.IPAddress -notlike '169.254.*' -and $_.IPAddress -ne '127.0.0.1'} | Select-Object -ExpandProperty IPAddress}) | Select-Object -Unique
 $urls=@($addresses | ForEach-Object {"http://$($_):$Puerto"})
-@('CRM Tecnologia instalado.','','Abre desde otra PC de la misma red:')+$urls+@('','Envia esta direccion a Samuel/Codex para completar el retorno de inicio de sesion y los enlaces de correo.','La PC servidora debe permanecer encendida y conectada a Internet para Supabase.','Vercel se retirara despues de verificar el acceso desde ambas computadoras.',"Carpeta de instalacion: $destination") | Set-Content -LiteralPath (Join-Path $InstallRoot 'ACCESO-CRM.txt') -Encoding UTF8
+if($config.storage -eq 'local'){try{$privateConfig=Get-Content (Join-Path $config.dataDirectory 'privado.json') -Raw|ConvertFrom-Json;if($privateConfig.appUrl){$urls=@($privateConfig.appUrl)}}catch{}}
+@('CRM Tecnologia instalado.','','Abre desde otra PC de la misma red:')+$urls+@('','Envia esta direccion a Samuel/Codex para completar el retorno de inicio de sesion y los enlaces de correo.',$(if($config.storage -eq 'local'){'La informacion se guarda en esta PC. Mantenla encendida. Internet se utiliza para correos y actualizaciones.'}else{'La PC servidora debe permanecer encendida y conectada a Internet para Supabase.'}),'Vercel se retirara despues de verificar el acceso desde ambas computadoras.',"Carpeta de instalacion: $destination") | Set-Content -LiteralPath (Join-Path $InstallRoot 'ACCESO-CRM.txt') -Encoding UTF8
+if($config.storage -eq 'local'){$tools=Join-Path $InstallRoot 'herramientas';New-Item -ItemType Directory -Path $tools -Force|Out-Null;foreach($helper in @('Mantenimiento-Local.ps1','Restaurar-Copia.cjs','Restaurar-Copia.ps1','Configurar-Copia-Externa.ps1','OPERACION-Y-RECUPERACION.txt')){if(Test-Path (Join-Path $source $helper)){Copy-Item (Join-Path $source $helper) $tools -Force}}}
 Write-Host 'CRM instalado y funcionando.' -ForegroundColor Green
 $urls | ForEach-Object {Write-Host $_ -ForegroundColor Cyan}
 Write-Host "Datos de acceso guardados en $InstallRoot\ACCESO-CRM.txt"

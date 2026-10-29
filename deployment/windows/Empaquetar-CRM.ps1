@@ -2,6 +2,9 @@ param([string]$Destino=(Join-Path (Get-Location) 'work/paquete-windows'),[string
 $ErrorActionPreference='Stop'
 if(-not(Test-Path '.next/standalone/server.js')){throw 'Primero compila el CRM.'}
 if(-not $Commit){throw 'Indica el commit que se incluye en el paquete.'}
+if((Test-Path -LiteralPath $Destino) -and (Get-ChildItem -LiteralPath $Destino -Force|Select-Object -First 1)){throw 'Usa una carpeta de paquete nueva y vacia para evitar mezclar versiones.'}
+$manifest=Get-Content '.next/standalone/.next/server/app-paths-manifest.json' -Raw|ConvertFrom-Json
+if(-not $manifest.'/api/local/status/route' -or -not $manifest.'/api/operations/route'){throw 'La compilacion no incluye las rutas locales actuales.'}
 New-Item -ItemType Directory -Path $Destino -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $Destino 'app') -Force | Out-Null
 Copy-Item .next/standalone/* (Join-Path $Destino 'app') -Recurse -Force

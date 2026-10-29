@@ -1,0 +1,13 @@
+'use strict';
+const https=require('node:https'),http=require('node:http'),net=require('node:net'),fs=require('node:fs'),path=require('node:path');
+const root=process.argv[2]||'C:\\ProgramData\\CRM-Tecnologia',privatePath=path.join(root,'datos','privado.json');
+function configuration(){return JSON.parse(fs.readFileSync(privatePath,'utf8').replace(/^\uFEFF/,''))}
+const initial=configuration();if(!initial.tlsProxySecret||!initial.tls?.pfx||!initial.tls?.password)throw Error('Falta configurar HTTPS.');
+const active=()=>JSON.parse(fs.readFileSync(path.join(root,'activo.json'),'utf8').replace(/^\uFEFF/,''));
+const secure=https.createServer({pfx:fs.readFileSync(initial.tls.pfx),passphrase:initial.tls.password,minVersion:'TLSv1.2'},(request,response)=>{
+ const headers={...request.headers,'x-forwarded-proto':'https','x-crm-proxy':initial.tlsProxySecret};delete headers['proxy-authorization'];
+ const upstream=http.request({hostname:'127.0.0.1',port:active().puerto,path:request.url,method:request.method,headers},reply=>{const extra={'x-content-type-options':'nosniff','referrer-policy':'same-origin'};if(configuration().tlsEnforce)extra['strict-transport-security']='max-age=86400';response.writeHead(reply.statusCode||502,{...reply.headers,...extra});reply.pipe(response)});
+ upstream.on('error',()=>{if(!response.headersSent){response.writeHead(503,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'});response.end('Tecnología se está actualizando. Intenta de nuevo en unos segundos.')}else response.destroy()});request.on('aborted',()=>upstream.destroy());response.on('close',()=>upstream.destroy());request.pipe(upstream);
+});secure.requestTimeout=120000;secure.headersTimeout=30000;
+const gateway=net.createServer(socket=>{socket.setTimeout(30000,()=>socket.destroy());socket.on('error',()=>{});socket.once('data',chunk=>{socket.pause();const config=configuration();if(chunk[0]!==22&&config.tlsEnforce){socket.end('HTTP/1.1 307 Temporary Redirect\r\nLocation: '+config.appUrl+'/\r\nCache-Control: no-store\r\nContent-Length: 0\r\nConnection: close\r\n\r\n');return}const destination=net.connect({host:'127.0.0.1',port:chunk[0]===22?(initial.tls.innerPort||3443):active().puerto});destination.on('error',()=>socket.destroy());socket.on('close',()=>destination.destroy());destination.on('close',()=>socket.destroy());destination.once('connect',()=>{socket.setTimeout(120000);destination.write(chunk);socket.pipe(destination);destination.pipe(socket)})})});
+secure.listen(initial.tls.innerPort||3443,'127.0.0.1',()=>gateway.listen(initial.tls.port||3000,initial.tls.bindHost||'0.0.0.0'));

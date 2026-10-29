@@ -23,6 +23,8 @@ jobs:
           node-version: '24.22.1'
           cache: npm
       - run: npm ci
+      - name: Verify local recovery and backups
+        run: npm run test:local
       - name: Build
         shell: pwsh
         run: |
@@ -47,6 +49,10 @@ jobs:
             for($i=0;$i -lt 30;$i++){try{if((Invoke-WebRequest http://127.0.0.1:3099/login -TimeoutSec 2).StatusCode -eq 200){$healthy=$true;break}}catch{};Start-Sleep 1}
             if(-not $healthy){throw 'El paquete no arranca.'}
             if((Invoke-WebRequest http://127.0.0.1:3099/icons.js).StatusCode -ne 200){throw 'Faltan recursos.'}
+            if((Invoke-WebRequest http://127.0.0.1:3099/operations.js).StatusCode -ne 200){throw 'Faltan las herramientas de seguimiento.'}
+            $localStatus=Invoke-RestMethod http://127.0.0.1:3099/api/local/status
+            if($localStatus.local -ne $false){throw 'Paquete con estado local inesperado.'}
+            if(-not (Invoke-RestMethod http://127.0.0.1:3099/api/version).version){throw 'Falta la version de la interfaz.'}
           } finally {Stop-Process -Id $server.Id -ErrorAction SilentlyContinue}
           Compress-Archive -Path "$env:RUNNER_TEMP/crm-package/*" -DestinationPath "$env:RUNNER_TEMP/CRM-Tecnologia-Windows.zip"
       - name: Publish verified Windows release
