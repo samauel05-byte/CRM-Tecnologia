@@ -11,6 +11,8 @@ concurrency:
 jobs:
   package:
     runs-on: windows-latest
+    permissions:
+      contents: write
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -47,9 +49,16 @@ jobs:
             if((Invoke-WebRequest http://127.0.0.1:3099/icons.js).StatusCode -ne 200){throw 'Faltan recursos.'}
           } finally {Stop-Process -Id $server.Id -ErrorAction SilentlyContinue}
           Compress-Archive -Path "$env:RUNNER_TEMP/crm-package/*" -DestinationPath "$env:RUNNER_TEMP/CRM-Tecnologia-Windows.zip"
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: crm-windows
-          path: ${{ runner.temp }}/CRM-Tecnologia-Windows.zip
-          retention-days: 14
-          if-no-files-found: error
+      - name: Publish verified Windows release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag='windows-'+$env:GITHUB_SHA
+          gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null
+          if($LASTEXITCODE -eq 0){
+            gh release upload $tag "$env:RUNNER_TEMP/CRM-Tecnologia-Windows.zip" --repo $env:GITHUB_REPOSITORY --clobber
+          } else {
+            gh release create $tag "$env:RUNNER_TEMP/CRM-Tecnologia-Windows.zip" --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --prerelease --title "CRM Windows $env:GITHUB_SHA" --notes 'Paquete Windows compilado y verificado automaticamente para la red local.'
+          }
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}

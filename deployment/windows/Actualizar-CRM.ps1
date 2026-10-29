@@ -18,7 +18,7 @@ try {
  if($run.head_branch -ne 'main' -or $run.head_repository.full_name -ne $repo -or $run.event -notin @('push','workflow_dispatch')){throw 'Origen de paquete no permitido.'}
  $download=Join-Path $InstallRoot ('descargas\'+[Guid]::NewGuid().ToString('N'))
  New-Item -ItemType Directory -Path $download -Force | Out-Null
- & $script:gh run download ([string]$run.id) --repo $repo --name crm-windows --dir $download 2>$null
+ & $script:gh release download ('windows-'+$run.head_sha) --repo $repo --pattern CRM-Tecnologia-Windows.zip --dir $download 2>$null
  if($LASTEXITCODE -ne 0){throw 'No se pudo descargar la nueva version.'}
  $package=Join-Path $download 'paquete'
  Expand-Archive -LiteralPath (Join-Path $download 'CRM-Tecnologia-Windows.zip') -DestinationPath $package
@@ -28,6 +28,7 @@ try {
  Log ('Instalando '+$version.commit)
  try {
   & (Join-Path $package 'Instalar-CRM.ps1') -InstallRoot $InstallRoot -Puerto $active.puerto -SourceConfigPath (Join-Path $active.path 'configuracion.json') -NoPause
+  Copy-Item -LiteralPath (Join-Path $package 'Actualizar-CRM.ps1') -Destination (Join-Path $InstallRoot 'actualizador/Actualizar-CRM.ps1') -Force
   Log 'Actualizacion instalada y comprobada.'
  } catch {
   Stop-ScheduledTask -TaskName 'CRM-Tecnologia' -ErrorAction SilentlyContinue
