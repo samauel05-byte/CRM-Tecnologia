@@ -3,6 +3,17 @@ import { isSameOrigin } from '@/lib/http';
 export const dynamic='force-dynamic';
 export async function POST(request:Request){return mutate(request,false)}
 export async function PATCH(request:Request){return mutate(request,true)}
+export async function DELETE(request:Request){
+ const headers={'Cache-Control':'private, no-store'};
+ if(!isSameOrigin(request))return Response.json({error:'Origen inválido.'},{status:403,headers});
+ const supabase=await createSupabaseServer();const {data:{user}}=await supabase.auth.getUser();
+ if(!user)return Response.json({error:'Inicia sesión.'},{status:401,headers});
+ let body;try{body=await request.json()}catch{return Response.json({error:'Solicitud inválida.'},{status:400,headers})}
+ if(typeof body.name!=='string'||!body.name.trim()||body.name.length>80||(body.target!==null&&(typeof body.target!=='string'||!body.target.trim()||body.target.length>80)))return Response.json({error:'Selecciona el proyecto y su destino.'},{status:400,headers});
+ const {data,error}=await supabase.rpc('crm_delete_project_move_tasks',{source_project:body.name,target_project:body.target});
+ if(error)return Response.json({error:['22023','P0002','42501'].includes(error.code)?error.message:'No se pudo eliminar el proyecto.'},{status:error.code==='42501'?403:400,headers});
+ return Response.json({ok:true,moved:data},{headers});
+}
 async function mutate(request:Request,rename:boolean){
  const headers={'Cache-Control':'private, no-store'};
  if(!isSameOrigin(request))return Response.json({error:'Origen inválido.'},{status:403,headers});
