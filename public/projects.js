@@ -1,6 +1,6 @@
-const deleteProjectButton=document.createElement('button');deleteProjectButton.id='deleteProject';deleteProjectButton.type='button';deleteProjectButton.className='delete-project';deleteProjectButton.textContent='Eliminar proyecto';deleteProjectButton.hidden=!selected;document.querySelector('.projecttools').append(deleteProjectButton);
+const deleteProjectButton=document.createElement('button');
 const renderWithProjectTools=render;
-render=function(){if(selected&&!data.projects.includes(selected))selected='';renderWithProjectTools();deleteProjectButton.hidden=!selected};
+render=function(){if(selected&&!data.projects.includes(selected))selected='';renderWithProjectTools()};
 deleteProjectButton.onclick=()=>{
  if(pending||saving||conflict){toast('Espera a que se guarden tus cambios antes de eliminar el proyecto.');return}
  const source=selected,targets=data.projects.filter(name=>name!==source);
@@ -10,3 +10,11 @@ deleteProjectButton.onclick=()=>{
  dialog.querySelector('form').onsubmit=async event=>{event.preventDefault();const submit=dialog.querySelector('[type=submit]');submit.disabled=true;try{const target=dialog.querySelector('[name=target]')?.value||null;const response=await fetch('/api/team/projects',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:source,target})}),body=await response.json();if(!response.ok)throw new Error(body.error);dialog.close();selected='';await refreshSharedProjects();await refreshTeamOverview();render();toast('Proyecto eliminado. '+body.moved+' tareas conservadas.')}catch(error){dialog.querySelector('.edit-error').textContent=error.message}finally{submit.disabled=false}};
  dialog.showModal();
 };
+let projectContextMenu=null,projectContextOrigin=null;
+function closeProjectMenu(restoreFocus=false){projectContextMenu?.remove();projectContextMenu=null;if(restoreFocus&&projectContextOrigin?.isConnected)projectContextOrigin.focus()}
+function openProjectMenu(project,x,y){closeProjectMenu();projectContextOrigin=project;const name=project.dataset.project;const menu=document.createElement('div');menu.className='project-context-menu';menu.setAttribute('role','menu');menu.setAttribute('aria-label','Opciones de '+name);menu.innerHTML='<small></small><button type="button" role="menuitem">Eliminar proyecto</button>';menu.querySelector('small').textContent=name;document.body.append(menu);projectContextMenu=menu;menu.style.left=Math.max(8,Math.min(x,window.innerWidth-menu.offsetWidth-8))+'px';menu.style.top=Math.max(8,Math.min(y,window.innerHeight-menu.offsetHeight-8))+'px';const action=menu.querySelector('button');action.onclick=()=>{closeProjectMenu();selected=name;render();deleteProjectButton.onclick()};action.focus()}
+document.querySelector('#projects').addEventListener('contextmenu',event=>{const project=event.target.closest('[data-project]');if(!project)return;event.preventDefault();openProjectMenu(project,event.clientX,event.clientY)});
+document.querySelector('#projects').addEventListener('keydown',event=>{if((event.shiftKey&&event.key==='F10')||event.key==='ContextMenu'){const project=event.target.closest('[data-project]');if(!project)return;event.preventDefault();const box=project.getBoundingClientRect();openProjectMenu(project,box.left+20,box.bottom)}});
+document.addEventListener('pointerdown',event=>{if(projectContextMenu&&!projectContextMenu.contains(event.target))closeProjectMenu()});
+document.addEventListener('keydown',event=>{if(projectContextMenu&&event.key==='Escape'){event.preventDefault();closeProjectMenu(true)}});
+window.addEventListener('resize',()=>closeProjectMenu());document.addEventListener('scroll',()=>closeProjectMenu(),true);
