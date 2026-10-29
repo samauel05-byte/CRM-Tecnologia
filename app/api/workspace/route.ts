@@ -12,7 +12,7 @@ export async function GET(){
   let permissions;try{permissions=await getCrmRole(supabase,user.id)}catch{return respond({error:'No se pudieron verificar los permisos.'},503)}
   const {data:projects,error:projectError}=await supabase.from('crm_projects').select('name').order('created_at').order('name');
   if(projectError)return respond({error:'No se pudieron cargar los proyectos del equipo.'},503);
-  return respond({data:row?.payload||null,projects:projects.map(project=>project.name),revision:row?.revision||0,user:{name:permissions.username||user.user_metadata?.full_name||user.email,email:user.email,role:permissions.role}});
+  return respond({data:row?.payload||null,projects:projects.map(project=>project.name),revision:row?.revision||0,user:{id:user.id,name:permissions.username||user.user_metadata?.full_name||user.email,email:user.email,role:permissions.role}});
 }
 export async function PUT(request:Request){
   if(!isSameOrigin(request))return respond({error:'Origen inválido.'},403);
