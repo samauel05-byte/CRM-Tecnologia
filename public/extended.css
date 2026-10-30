@@ -4,3 +4,7 @@
 .trashrow button.primary{color:#fff}
 
 .task-status{display:inline-block;border-radius:5px;padding:4px 7px;font-size:10px;font-weight:700;margin:4px 5px 4px 0;white-space:nowrap}.task-status.unassigned{background:#edf0f3;color:#596573}.task-status.pending{background:#e3edff;color:#245cbd}.task-status.completed{background:#e1f5e8;color:#227342}.task-status.overdue{background:#ffe4e4;color:#b52d37}.task-status.progress{background:#fff0d9;color:#926012}.task-status.custom{background:#f0e9ff;color:#7050a8}.task-updated{font-size:10px;color:#77838c;margin:5px 0}.trashrow button[data-edit-user]{color:#fff!important;min-width:76px}#status.task-status{font-size:13px;padding:10px}
+
+.timebox #tracked{font-variant-numeric:tabular-nums;font-size:14px;font-weight:700}.timebox #timer{padding:9px 14px;border:1px solid #b8d9cd;border-radius:8px;font-weight:700;background:#f1f8f5}.timebox.is-running{background:#edf9f3;border-color:#87c8ad}.timebox.is-running #timer{background:#167a68;color:#fff;border-color:#167a68}.timebox #timer:disabled{opacity:.5;cursor:not-allowed}
+
+
